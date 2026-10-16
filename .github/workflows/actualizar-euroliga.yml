@@ -1,0 +1,64 @@
+
+name: Actualizar Euroliga IA
+
+on:
+  schedule:
+    # Cada 6 horas (horario UTC)
+    - cron: "0 */6 * * *"
+
+  # Permite ejecutar la actualización manualmente
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: actualizar-euroliga
+  cancel-in-progress: false
+
+jobs:
+  actualizar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Descargar repositorio
+        uses: actions/checkout@v4
+
+      - name: Preparar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Instalar dependencias
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Descargar partidos
+        run: python actualizar_temporada_actual.py
+
+      - name: Preparar estadísticas acumuladas
+        run: python preparar_temporada_actual.py
+
+      - name: Calcular métricas avanzadas
+        run: python crear_metricas_actuales.py
+
+      - name: Actualizar modelos y predicciones
+        run: python modelo_actual_por_jornada.py
+
+      - name: Publicar predicciones actualizadas
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add predicciones_actuales_por_jornada.csv
+          git add explicaciones_modelos_por_jornada.csv
+
+          if git diff --cached --quiet; then
+            echo "No hay cambios en las predicciones."
+          else
+            git commit -m "Actualizar predicciones de Euroliga IA"
+            git push
+          fi
