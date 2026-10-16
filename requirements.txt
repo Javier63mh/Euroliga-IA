@@ -5,4 +5,4 @@ numpy
 plotly
 scikit-learn
 joblib
-euroleague
+py-euroleague
